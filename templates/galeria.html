@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Galeria de Eventos</title>
+    <style>
+        body {
+            background: #111;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        h1 { margin-top: 20px; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 200px);
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 50px;
+        }
+        .grid img, .grid video {
+            width: 200px;
+            height: auto;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .grid img:hover, .grid video:hover {
+            transform: scale(1.05);
+        }
+        a {
+            color: white;
+            text-decoration: none;
+            margin: 10px;
+            padding: 8px 12px;
+            background: #222;
+            border-radius: 6px;
+        }
+        a:hover { background: red; }
+
+        /* Popup */
+        #popup {
+            position: fixed;
+            top:0; left:0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+        #popup-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+        }
+        #popup-content img, #popup-content video {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+        }
+        #popup .close, #popup .prev, #popup .next {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-size: 2rem;
+            background: rgba(0,0,0,0.5);
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        #popup .close { top: 15px; right: 15px; transform: none; font-size: 1.5rem; }
+        #popup .prev { left: -50px; }
+        #popup .next { right: -50px; }
+        #popup button:hover { background: red; }
+    </style>
+</head>
+<body>
+
+<h1>Galeria de Eventos</h1>
+<div><a href="/">Voltar ao Feed</a></div>
+
+<h2>Imagens</h2>
+<div class="grid" id="imagens-grid">
+    {% for img in imagens %}
+        <img src="/movimentos/{{ img }}" data-index="{{ loop.index0 }}" alt="{{ img }}">
+    {% endfor %}
+</div>
+
+<h2>Vídeos</h2>
+<div class="grid" id="videos-grid">
+    {% for vid in videos %}
+        <video data-index="{{ loop.index0 }}" controls>
+            <source src="{{ url_for('videos_files', filename=vid) }}" type="video/mp4">
+        </video>
+    {% endfor %}
+</div>
+
+<!-- Popup -->
+<div id="popup">
+    <button class="close" onclick="closePopup()">×</button>
+    <button class="prev" onclick="prevMedia()">‹</button>
+    <div id="popup-content"></div>
+    <button class="next" onclick="nextMedia()">›</button>
+</div>
+
+<script>
+    const popup = document.getElementById("popup");
+    const content = document.getElementById("popup-content");
+
+    let mediaItems = [];
+    let currentIndex = 0;
+
+    // Junta imagens e vídeos em uma lista
+    const imgElems = Array.from(document.querySelectorAll("#imagens-grid img"));
+    const vidElems = Array.from(document.querySelectorAll("#videos-grid video"));
+    mediaItems = imgElems.concat(vidElems);
+
+    // som de alerta
+    const audio = new Audio('/static/alerta.mp3');
+
+    // conectar ao SSE
+    const evtSource = new EventSource("/alerta_stream");
+    evtSource.onmessage = function(event) {
+        const msg = event.data;
+        audio.play();  // toca som
+        // notificação visual
+        const notif = document.createElement('div');
+        notif.textContent = msg;
+        notif.style.background = 'red';
+        notif.style.color = 'white';
+        notif.style.padding = '8px';
+        notif.style.margin = '5px';
+        notif.style.borderRadius = '5px';
+        notif.style.position = 'fixed';
+        notif.style.top = '10px';
+        notif.style.right = '10px';
+        notif.style.zIndex = 1000;
+        document.body.appendChild(notif);
+
+        // remove após 5s
+        setTimeout(() => notif.remove(), 5000);
+    };
+
+    function openPopup(index) {
+        currentIndex = index;
+        showMedia();
+        popup.style.display = "flex";
+    }
+
+    function closePopup() {
+        // pausa vídeo se estiver reproduzindo
+        const video = content.querySelector("video");
+        if(video) video.pause();
+        popup.style.display = "none";
+    }
+
+    function showMedia() {
+        const item = mediaItems[currentIndex];
+        content.innerHTML = "";
+
+        if(item.tagName.toLowerCase() === "img") {
+            const img = document.createElement("img");
+            img.src = item.src;
+            content.appendChild(img);
+        } else if(item.tagName.toLowerCase() === "video") {
+            const vid = document.createElement("video");
+            vid.src = item.querySelector("source").src;
+            vid.controls = true;
+            vid.autoplay = true;
+            content.appendChild(vid);
+        }
+    }
+
+    function nextMedia() {
+        currentIndex = (currentIndex + 1) % mediaItems.length;
+        showMedia();
+    }
+
+    function prevMedia() {
+        currentIndex = (currentIndex - 1 + mediaItems.length) % mediaItems.length;
+        showMedia();
+    }
+
+    // Eventos de click
+    imgElems.forEach((img, i) => {
+        img.onclick = () => openPopup(i);
+    });
+    vidElems.forEach((vid, i) => {
+        vid.onclick = () => openPopup(i + imgElems.length);
+    });
+</script>
+
+</body>
+</html>

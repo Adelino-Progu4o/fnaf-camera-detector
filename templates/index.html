@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Mini CCTV - FNAF Style</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0f0f0f;
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .menu {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .menu a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            background: #222;
+            border-radius: 6px;
+        }
+
+        .menu a:hover {
+            background: red;
+        }
+
+        .camera-container {
+            position: relative;
+            margin-top: 20px;
+            width: 80%;
+            max-width: 900px;
+        }
+
+        .camera-container img {
+            width: 100%;
+            border: 3px solid red;
+            border-radius: 8px;
+        }
+
+        .camera-buttons {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .camera-buttons button {
+            background: #222;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .camera-buttons button:hover {
+            background: red;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Mini CCTV - FNAF Style</h1>
+
+    <div class="menu">
+        <a href="/">Feed ao vivo</a>
+        <a href="/galeria">Galeria</a>
+    </div>
+
+    <div class="camera-container">
+        <img id="camera-feed" src="" alt="FEED AO VIVO">
+        <div class="camera-buttons" id="camera-buttons">
+            <!-- Botões de troca de câmera serão inseridos via JS -->
+        </div>
+    </div>
+
+    <script>
+        // Seleciona elementos
+        const feedImg = document.getElementById("camera-feed");
+        const buttonsDiv = document.getElementById("camera-buttons");
+
+        // Lista de câmeras (vinda do Flask)
+        const cameras = {{ cameras|tojson }};
+
+        // Função para trocar feed - adiciona timestamp para evitar cache
+        function setCamera(cam) {
+            feedImg.src = `/video_feed/${cam}?t=${new Date().getTime()}`;
+        }
+
+        // Cria botões dinamicamente
+        cameras.forEach(cam => {
+            const btn = document.createElement("button");
+            btn.innerText = cam.toUpperCase();
+            btn.onclick = () => setCamera(cam);
+            buttonsDiv.appendChild(btn);
+        });
+
+        // Inicializa com a primeira câmera
+        if (cameras.length > 0) {
+            setCamera(cameras[0]);
+        }
+    </script>
+
+</body>
+</html>
